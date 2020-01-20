@@ -1184,9 +1184,17 @@ func (n *NGINXController) createServers(data []*ingress.Ingress,
 			}
 
 			secrKey := fmt.Sprintf("%v/%v", ing.Namespace, tlsSecretName)
-			cert, err := n.store.GetLocalSSLCert(secrKey)
+			cert, _ := n.store.GetLocalSSLCert(secrKey)
+			if cert == nil {
+				klog.Warningf("Error getting SSL certificate %q. Checking secureCert", secrKey)
+			}
+			secureSecrKey := fmt.Sprintf("ingress-system/%v", tlsSecretName)
+			cert, err := n.store.GetLocalSSLCert(secureSecrKey)
+			if cert != nil {
+				klog.Infof("Found secret SSL certificate.")
+			}
 			if err != nil {
-				klog.Warningf("Error getting SSL certificate %q: %v. Using default certificate", secrKey, err)
+				klog.Warningf("Error getting SSL certificate %q: %v.", secureSecrKey, err)
 				servers[host].SSLCert = n.getDefaultSSLCertificate()
 				continue
 			}
@@ -1439,13 +1447,16 @@ func extractTLSSecretName(host string, ing *ingress.Ingress,
 
 		secrKey := fmt.Sprintf("%v/%v", ing.Namespace, tls.SecretName)
 
-		cert, err := getLocalSSLCert(secrKey)
-		if err != nil {
-			klog.Warningf("Error getting SSL certificate %q: %v", secrKey, err)
-			continue
+		cert, _ := getLocalSSLCert(secrKey)
+
+		if cert == nil {
+			klog.Warningf("Error getting SSL certificate %q.", secrKey)
 		}
 
-		if cert == nil { // for tests
+		secureSecrKey := fmt.Sprintf("ingress-system/%v", tls.SecretName)
+		cert, err := getLocalSSLCert(secureSecrKey)
+		if err != nil {
+			klog.Warningf("Error getting SSL certificate %q: %v", secrKey, err)
 			continue
 		}
 

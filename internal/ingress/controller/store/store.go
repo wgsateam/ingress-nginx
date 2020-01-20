@@ -680,6 +680,8 @@ func (s *k8sStore) updateSecretIngressMap(ing *networkingv1beta1.Ingress) {
 		if secrName != "" {
 			secrKey := fmt.Sprintf("%v/%v", ing.Namespace, secrName)
 			refSecrets = append(refSecrets, secrKey)
+			secureSecrKey := fmt.Sprintf("ingress-system/%v", secrName)
+			refSecrets = append(refSecrets, secureSecrKey)
 		}
 	}
 
